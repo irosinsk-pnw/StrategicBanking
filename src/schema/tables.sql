@@ -19,7 +19,7 @@ create table DEPOSIT (
     Acct_num varchar(10) primary key,
     Balance decimal default 0,
     Rate varchar(255) not null,
-    Bank_name varchar(255),
+    Bank_name varchar(255) unique,
     Acct_type varchar(255),
     Fee decimal,
     Deposit_type enum('customer','fedfunds') not null,
@@ -76,7 +76,7 @@ create table CUST_LOAN (
 
 create table FED_FUNDS_LOAN (
     Loan_num varchar(10) primary key,
-    Bank_name varchar(255) not null,
+    Bank_name varchar(255) unique not null,
 
     foreign key (Loan_num) references LOAN (Loan_num)
         on update cascade
