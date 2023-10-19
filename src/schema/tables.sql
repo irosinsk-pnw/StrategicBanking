@@ -12,16 +12,16 @@ create table EXTERN_BANK (
 
 create table RATE (
     Rate_type varchar(255) primary key,
-    Amount decimal not null
+    Amount decimal(5,5) not null
 );
 
 create table DEPOSIT (
     Acct_num varchar(10) primary key,
-    Balance decimal default 0,
+    Balance decimal(12,2) default 0,
     Rate varchar(255) not null,
     Bank_name varchar(255) unique,
     Acct_type varchar(255),
-    Fee decimal,
+    Fee decimal(12,2),
     Deposit_type enum('customer','fedfunds') not null,
 
     foreign key (Bank_name) references EXTERN_BANK (Name)
@@ -48,8 +48,8 @@ create table CUST_ACCT (
 
 create table LOAN (
     Loan_num varchar(10) primary key,
-    Balance decimal,
-    Payment_due decimal,
+    Balance decimal(12,2),
+    Payment_due decimal(12,2),
     Rate varchar(255) not null,
 
     foreign key (Rate) references RATE (Rate_type)
@@ -63,7 +63,7 @@ create table CUST_LOAN (
     Months_remaining int not null,
     Rate_type enum('fixed','variable') not null,
     Loan_type varchar(255) not null,
-    Fee decimal default 0,
+    Fee decimal(12,2) default 0,
 
     foreign key (Loan_num) references LOAN (Loan_num)
         on update cascade
