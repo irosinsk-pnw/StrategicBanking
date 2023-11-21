@@ -1,0 +1,150 @@
+This query will return the total net worth (deposits minus loans) of a given customer SSN, here 999887777.
+
+SELECT SUM(DEPOSIT.Balance)-SUM(LOAN.Balance) as Net_worth
+FROM DEPOSIT,LOAN
+WHERE DEPOSIT.Balance IN (
+    SELECT Balance FROM (DEPOSIT NATURAL JOIN CUST_ACCT) WHERE Ssn = "999887777")
+AND LOAN.Balance IN (
+    SELECT Balance FROM (LOAN NATURAL JOIN CUST_LOAN) WHERE Ssn = "999887777");
+
+Result:
++------------+
+| Net_worth  |
++------------+
+| -362844.87 |
++------------+
+
+
+
+This query will return the interest that will accrue on each deposit account owned by a given SSN, here 111223333.
+
+WITH TEMP(Acct_num, Balance, Rate) AS (
+    SELECT Acct_num, Balance, Rate
+    FROM (DEPOSIT NATURAL JOIN CUST_ACCT)
+    WHERE Ssn = "111223333")
+SELECT Acct_num, (Balance * Amount) AS Interest
+FROM (TEMP JOIN RATE ON Rate = Rate_type);
+
+Result:
++------------+--------------+
+| Acct_num   | Interest     |
++------------+--------------+
+| 0000000002 | 4222.0972500 |
+| 0000000003 |    0.0000000 |
++------------+--------------+
+
+
+
+If a given deposit account (here 0000000005) is held jointly, this query will retrieve the accounts and balances owned by every owner of this account.
+
+SELECT UNIQUE Acct_num, Balance
+FROM (DEPOSIT NATURAL JOIN CUST_ACCT)
+WHERE Ssn IN (
+    SELECT Ssn
+    FROM CUST_ACCT
+    WHERE Acct_num = "0000000005");
+
+Result:
++------------+----------+
+| Acct_num   | Balance  |
++------------+----------+
+| 0000000005 | 25391.82 |
+| 0000000006 |   100.00 |
++------------+----------+
+
+
+
+This query will return the total equity of the bank, its assets (loans, fees) minus liabilities (deposits). It's a simple query, but it's very important to the bank.
+
+SELECT SUM(LOAN.Balance) + SUM(CUST_LOAN.Fee) + SUM(DEPOSIT.Fee) - SUM(DEPOSIT.Balance) AS Equity
+FROM LOAN, CUST_LOAN, DEPOSIT;
+
+Result:
++--------------+
+| Equity       |
++--------------+
+| 190384589.68 |
++--------------+
+
+
+
+This query will determine how much more money will be gained or lost on loans by changing a given interest rate. Here, we increase the 30YearVariable rate by .002 (that is, 0.2%).
+
+WITH TEMP(Balance, Percent) AS (
+    SELECT Balance, Amount AS Percent
+    FROM (LOAN JOIN RATE ON Rate = Rate_type)
+    WHERE Rate_type = "30YearVariable")
+SELECT SUM(Balance * (Percent+.002)) - SUM(Balance * Percent) AS Profit
+FROM TEMP;
+
+Result:
++--------------+
+| Profit       |
++--------------+
+| 1369.7920600 |
++--------------+
+
+
+
+This query will determine the annualized operating cost for the bank's reserves, which is essentially the difference of federal funds purchased and sold (including interest), multiplied over 4 quarters. This is an indicator of the bank's health and overall costs.
+
+WITH FFLOAN(Balance, Percent) AS (
+    SELECT Balance, Amount AS Percent
+    FROM (LOAN JOIN RATE ON Rate = Rate_type)
+    WHERE Loan_num IN (SELECT Loan_num FROM FED_FUNDS_LOAN)),
+FFDEP(Balance, Percent) AS (
+    SELECT Balance, Amount AS Percent
+    FROM (DEPOSIT JOIN RATE ON Rate = Rate_type)
+    WHERE Deposit_type = "fedfunds")
+SELECT 4 * SUM(FFDEP.Balance * (1+FFDEP.Percent)) - SUM(FFLOAN.Balance * (1+FFLOAN.Percent)) AS Operating_cost
+FROM FFLOAN, FFDEP;
+
+Result:
++------------------+
+| Operating_cost   |
++------------------+
+| 11004942.0000000 |
++------------------+
+
+
+
+This query creates a view that collects the important identifying and quantitative values of the customer deposits into one table, for ease of access.
+
+CREATE VIEW CUST_DEPOSITS AS
+SELECT Acct_num, Ssn, Balance, Amount AS Rate, Fee
+FROM ((DEPOSIT NATURAL JOIN CUST_ACCT) JOIN RATE ON Rate = Rate_type);
+
+Resulting view:
++------------+-----------+----------+---------+-------+
+| Acct_num   | Ssn       | Balance  | Rate    | Fee   |
++------------+-----------+----------+---------+-------+
+| 0000000001 | 123456789 | 10000.00 | 0.07200 |  0.00 |
+| 0000000002 | 111223333 | 56294.63 | 0.07500 |  0.00 |
+| 0000000003 | 111223333 |  5034.05 | 0.00000 |  0.00 |
+| 0000000004 | 999887777 |   -37.42 | 0.00000 | 25.00 |
+| 0000000005 | 456454567 | 25391.82 | 0.07500 |  0.00 |
+| 0000000005 | 456452345 | 25391.82 | 0.07500 |  0.00 |
+| 0000000006 | 456454567 |   100.00 | 0.00100 |  0.00 |
+| 0000000006 | 456453456 |   100.00 | 0.00100 |  0.00 |
+| 1000023548 | 843671129 |  1218.32 | 0.07200 |  0.00 |
+| 4235686587 | 784531246 |  2125.85 | 0.04120 |  0.00 |
+| 6230259748 | 200647823 |  8783.32 | 0.05820 |  0.00 |
+| 1235423548 | 532164895 |  3479.85 | 0.07370 |  0.00 |
++------------+-----------+----------+---------+-------+
+
+
+
+This query displays the balance, payment due, and months remaining of all loans which will not be paid off at the current rate (that is, the current payment due times months remaining).
+
+SELECT Loan_num, Balance, Payment_due, Months_remaining
+FROM (LOAN NATURAL JOIN CUST_LOAN)
+WHERE Payment_due * Months_remaining < Balance;
+
+Result:
++------------+-----------+-------------+------------------+
+| Loan_num   | Balance   | Payment_due | Months_remaining |
++------------+-----------+-------------+------------------+
+| 1235578122 | 245020.00 |     1800.00 |              136 |
+| 1312321345 |  21240.00 |      875.00 |               24 |
+| 8513578981 | 324515.00 |     3200.00 |              101 |
++------------+-----------+-------------+------------------+
