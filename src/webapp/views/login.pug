@@ -1,0 +1,10 @@
+html
+    body
+    form(method="POST")
+        label(for="ssn") Social Security number:
+        br
+        input(type="text",id="ssn",name="ssn")
+        br
+        input(type="submit",value="Login")
+    if (failed)
+        p Invalid Social Security number.<br/>If you do not have an account with us, visit one of our bank managers.
