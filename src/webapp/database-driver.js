@@ -58,7 +58,7 @@ async function getAccounts(ssn) {
 
         let table = "<table><tr><th>Account number</th><th>Account type</th><th>Balance</th><th>Interest rate</th></tr>";
         for (let i in rows) {
-            table += `<tr><td>${rows[i].Acct_num}</td><td>${rows[i].Acct_type}</td><td>${rows[i].Balance}</td><td>${rows[i].Percent}\%</td></tr>`;
+            table += `<tr><td>${rows[i].Acct_num}</td><td>${rows[i].Acct_type}</td><td>\$${rows[i].Balance}</td><td>${rows[i].Percent}\%</td></tr>`;
         }
         table += "</table>";
 
@@ -93,7 +93,7 @@ async function getLoans(ssn) {
 
         let table = "<table><tr><th>Account number</th><th>Loan type</th><th>Balance</th><th>Next payment due</th><th>Months remaining</th><th>Interest rate</th></tr>";
         for (let i in rows) {
-            table += `<tr><td>${rows[i].Loan_num}</td><td>${rows[i].Loan_type}</td><td>${rows[i].Balance}</td><td>${rows[i].Payment_due}</td><td>${rows[i].Months_remaining}</td><td>${rows[i].Percent}\%</td></tr>`;
+            table += `<tr><td>${rows[i].Loan_num}</td><td>${rows[i].Loan_type}</td><td>\$${rows[i].Balance}</td><td>\$${rows[i].Payment_due}</td><td>${rows[i].Months_remaining}</td><td>${rows[i].Percent}\%</td></tr>`;
         }
         table += "</table>";
 
@@ -183,6 +183,87 @@ async function makePayment(ssn, lnum, amount) {
     }
 }
 
+async function getBankData() {
+    let conn;
+    try {
+        conn = await managerPool.getConnection();
+
+        // Holy linewrap, Batman!
+        const aoc = await conn.query(`WITH FFLOAN(Balance, Percent) AS (SELECT Balance, Amount AS Percent FROM (LOAN JOIN RATE ON Rate = Rate_type) WHERE Loan_num IN (SELECT Loan_num FROM FED_FUNDS_LOAN)), FFDEP(Balance, Percent) AS (SELECT Balance, Amount AS Percent FROM (DEPOSIT JOIN RATE ON Rate = Rate_type) WHERE Deposit_type = "fedfunds") SELECT 4 * SUM(FFDEP.Balance * (1+FFDEP.Percent)) - SUM(FFLOAN.Balance * (1+FFLOAN.Percent)) AS Operating_cost FROM FFLOAN, FFDEP`);
+
+        const equity = await conn.query(`SELECT SUM(LOAN.Balance) + SUM(CUST_LOAN.Fee) + SUM(DEPOSIT.Fee) - SUM(DEPOSIT.Balance) AS Equity FROM LOAN, CUST_LOAN, DEPOSIT`);
+
+        let bankdata = `Total bank equity: \$${equity[0].Equity}<br>Operating cost (annualized): \$${aoc[0].Operating_cost}`;
+        return bankdata;
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
+
+async function getCustomers() {
+    let conn;
+    try {
+        conn = await managerPool.getConnection();
+        const rows = await conn.query("select * from CUSTOMER");
+        if (rows.length == 0)
+            return "<p>No customers found.";
+
+        let table = "<table><tr><th>SSN</th><th>Name</th><th>Phone number</th><th>Address</th></tr>";
+        for (let i in rows) {
+            table += `<tr><td>${rows[i].Ssn}</td><td>${rows[i].Name}</td><td>${rows[i].Phone}</td><td>${rows[i].Address}</td></tr>`;
+        }
+        table += "</table>";
+
+        let form = `<p>Add a customer:\n<form method="POST">\
+                    <label for="ssn">SSN:</label>\
+                    <input type="text" id="ssn" name="ssn"><br>\
+                    <label for="name">Name:</label>\
+                    <input type="text" id="name" name="name"><br>\
+                    <label for="phone">Phone number:</label>\
+                    <input type="text" id="phone" name="phone"><br>\
+                    <label for="address">Address:</label>\
+                    <input type="text" id="address" name="address"><br>\
+                    <input type="submit" value="Submit">
+                    </form>`;
+
+        return [table, form];
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
+
+async function createCustomer(ssn, name, phone, address) {
+    if (! /^[0-9]{9}$/.test(ssn))
+        return "<p>Invalid SSN. Must be 9 digits.";
+    if (! /^[0-9]{1,15}$/.test(phone))
+        return "<p>Invalid phone number. Must be 1 to 15 digits.";
+    if (! /^[a-zA-Z0-9 \-\.]{1,255}$/.test(name))
+        return "<p>Invalid name. Must only contain alphanumerics, spaces, hyphens, and periods.";
+    if (! /^[a-zA-Z0-9 \-\.,]{1,255}$/.test(address))
+        return "<p>Invalid address. Must only contain alphanumerics, spaces, hyphens, commas, and periods.";
+
+    let conn;
+    try {
+        conn = await managerPool.getConnection();
+        const person = await conn.query(`select Ssn from CUSTOMER where Ssn = ${ssn}`);
+        if (person.length != 0)
+            return "<p>Customer with this SSN already exists.";
+
+        const result = await conn.query(`insert into CUSTOMER SET Ssn = ${ssn}, Name = "${name}", Phone = ${phone}, Address = "${address}"`);
+
+        if (result.warningStatus != 0)
+            return "<p>An unknown error has occurred.";
+        return "<p>Customer added successfully.";
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
 
 module.exports.doesSsnExist = doesSsnExist;
 module.exports.getBioData = getBioData;
@@ -190,3 +271,6 @@ module.exports.getAccounts = getAccounts;
 module.exports.getLoans = getLoans;
 module.exports.makePayment = makePayment;
 module.exports.transact = transact;
+module.exports.getBankData = getBankData;
+module.exports.getCustomers = getCustomers;
+module.exports.createCustomer = createCustomer;

@@ -5,7 +5,10 @@ const {doesSsnExist,
        getAccounts,
        getLoans,
        makePayment,
-       transact
+       transact,
+       getBankData,
+       getCustomers,
+       createCustomer
 } = require("./database-driver.js");
 
 const express = require("express");
@@ -109,8 +112,21 @@ app.post("/customer/loans", async function (req, res) {
 });
 
 
-app.get("/manager", function (req, res) {
-    res.render("manager");
+app.get("/manager", async function (req, res) {
+    const bankdata = await getBankData();
+    res.render("manager", {bankdata: bankdata});
+});
+
+app.get("/manager/customers", async function (req, res) {
+    const [custTable, custForm] = await getCustomers();
+    res.render("allcustomers", {custTable: custTable, custForm: custForm});
+});
+
+// Create a customer
+app.post("/manager/customers", async function (req, res) {
+    const results = await createCustomer(req.body.ssn, req.body.name, req.body.phone, req.body.address);
+    const [custTable, custForm] = await getCustomers();
+    res.render("allcustomers", {custTable: custTable, custForm: custForm, results: results});
 });
 
 app.listen(port, function(){
