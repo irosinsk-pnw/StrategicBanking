@@ -35,9 +35,6 @@ async function doesSsnExist(ssn) {
 }
 
 async function getBioData(ssn) {
-    if (! await doesSsnExist(ssn))
-        throw Error("SSN does not exist");
-
     let conn;
     try {
         conn = await customerPool.getConnection();
@@ -51,5 +48,58 @@ async function getBioData(ssn) {
     }
 }
 
+async function getAccounts(ssn) {
+    let conn;
+    try {
+        conn = await customerPool.getConnection();
+        const rows = await conn.query(`select Acct_num,Acct_type,Balance,Amount*100 as Percent from (DEPOSIT natural join CUST_ACCT join RATE on Rate = Rate_type) where Ssn = ${ssn}`);
+        if (rows.length == 0)
+            return "<p>No deposit accounts found.";
+
+        let table = "<table><tr><th>Account number</th><th>Account type</th><th>Balance</th><th>Interest rate</th></tr>";
+        for (let i in rows) {
+            table += `<tr><td>${rows[i].Acct_num}</td><td>${rows[i].Acct_type}</td><td>${rows[i].Balance}</td><td>${rows[i].Percent}\%</td></tr>`;
+        }
+        table += "</table>";
+        return table;
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
+
+async function getLoans(ssn) {
+    let conn;
+    try {
+        conn = await customerPool.getConnection();
+        const rows = await conn.query(`select Loan_num, Loan_type, Balance, Payment_due, Months_remaining, Amount*100 as Percent from (LOAN natural join CUST_LOAN join RATE on Rate = RATE.Rate_type) where Ssn = ${ssn}`);
+        if (rows.length == 0)
+            return ["<p>No loans found.", ""];
+
+        let table = "<table><tr><th>Account number</th><th>Loan type</th><th>Balance</th><th>Next payment due</th><th>Months remaining</th><th>Interest rate</th></tr>";
+        for (let i in rows) {
+            table += `<tr><td>${rows[i].Loan_num}</td><td>${rows[i].Loan_type}</td><td>${rows[i].Balance}</td><td>${rows[i].Payment_due}</td><td>${rows[i].Months_remaining}</td><td>${rows[i].Percent}\%</td></tr>`;
+        }
+        table += "</table>";
+
+        let paymentForm = `<p>Make a payment:\n<form method="POST">`;
+        for (let i in rows) {
+            paymentForm += `<input type="radio" id="${i}" name="lnum" value="${rows[i].Loan_num}">`
+            paymentForm += `<label for="${i}">${rows[i].Loan_num}</label><br>`
+        }
+        paymentForm += `<label for="amount">Amount: $</label>\
+                        <input type="text" id="amount" name="amount"><br>\
+                        <input type="submit" value="Submit"></form>`;
+        return [table, paymentForm];
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
+
 module.exports.doesSsnExist = doesSsnExist;
 module.exports.getBioData = getBioData;
+module.exports.getAccounts = getAccounts;
+module.exports.getLoans = getLoans;
