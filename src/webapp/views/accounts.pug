@@ -15,3 +15,9 @@ html
                     a(href="/logout") Log out
         p Your accounts:
         | !{acctTable}
+        |
+        | !{transacForm}
+        if (failed)
+            p Transaction failed. No account changes were made.
+        if (success)
+            p Transaction successful.

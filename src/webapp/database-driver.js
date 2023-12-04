@@ -61,7 +61,21 @@ async function getAccounts(ssn) {
             table += `<tr><td>${rows[i].Acct_num}</td><td>${rows[i].Acct_type}</td><td>${rows[i].Balance}</td><td>${rows[i].Percent}\%</td></tr>`;
         }
         table += "</table>";
-        return table;
+
+        let transacForm = `<p>Make a transaction:\n<form method="POST">
+                           <input type="radio" id="deposit" name="type" value="deposit"> \
+                           <label for="deposit">Deposit</label><br>
+                           <input type="radio" id="withdraw" name="type" value="withdraw"> \
+                           <label for="withdraw">Withdraw</label><br><br>`;
+        for (let i in rows) {
+            transacForm += `<input type="radio" id="${i}" name="anum" value="${rows[i].Acct_num}">`
+            transacForm += `<label for="${i}">${rows[i].Acct_num}</label><br>`
+        }
+
+        transacForm += `<label for="amount">Amount: $</label>\
+                        <input type="text" id="amount" name="amount"><br>\
+                        <input type="submit" value="Submit"></form>`;
+        return [table, transacForm];
     } catch (e) {
         throw e;
     } finally {
@@ -97,6 +111,44 @@ async function getLoans(ssn) {
     } finally {
         if (conn) conn.end();
     }
+}
+
+async function transact(ssn, anum, amount, type) {
+    // Ensure account num is 10 digits and amount matches money format
+    if (! /^[0-9]{10}$/.test(anum) || ! /^[0-9]+(\.[0-9]{2})?$/.test(amount))
+        return false;
+
+    let conn;
+    try {
+        conn = await customerPool.getConnection();
+        const row = await conn.query(`select Balance, Fee from (DEPOSIT natural join CUST_ACCT) where Ssn = ${ssn} and Acct_num = ${anum}`);
+        if (row.length != 1)
+            return false;
+
+        const balance = Number(row[0].Balance);
+        let fee = Number(row[0].Fee);
+        if (type == "withdraw")
+            amount = -Number(amount);
+        else if (type == "deposit")
+            amount = Number(amount);
+        else
+            return false;
+
+        if (amount < 0 && balance + amount < 0)
+            fee += 25;
+
+        const result = await conn.query(`update DEPOSIT set Balance=${balance+amount}, Fee=${fee} where Acct_num = ${anum}`);
+        if (result.affectedRows == 0)
+            return false;
+        if (result.affectedRows != 1 || result.warningStatus != 0)
+            console.log(`SSN: ${ssn} | Loan number: ${lnum} | Amount: ${amount} | Result: ${JSON.stringify(result)}`);
+        return true;
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+
 }
 
 async function makePayment(ssn, lnum, amount) {
@@ -137,3 +189,4 @@ module.exports.getBioData = getBioData;
 module.exports.getAccounts = getAccounts;
 module.exports.getLoans = getLoans;
 module.exports.makePayment = makePayment;
+module.exports.transact = transact;

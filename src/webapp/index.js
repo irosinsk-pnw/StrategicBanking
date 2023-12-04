@@ -1,6 +1,12 @@
 "use strict";
 
-const {doesSsnExist, getBioData, getAccounts, getLoans, makePayment} = require("./database-driver.js");
+const {doesSsnExist,
+       getBioData,
+       getAccounts,
+       getLoans,
+       makePayment,
+       transact
+} = require("./database-driver.js");
 
 const express = require("express");
 const path = require("path");
@@ -60,10 +66,25 @@ app.get("/customer/accounts", async function (req, res) {
     if (!req.session.ssn || !(await doesSsnExist(req.session.ssn)))
         res.redirect("/login");
     else {
-        const acctTable = await getAccounts(req.session.ssn);
-        res.render("accounts", {acctTable: acctTable});
+        const [acctTable, transacForm] = await getAccounts(req.session.ssn);
+        res.render("accounts", {acctTable: acctTable, transacForm: transacForm});
     }
 });
+
+// Make account transaction
+app.post("/customer/accounts", async function (req, res) {
+    if (!req.session.ssn || !(await doesSsnExist(req.session.ssn)))
+        res.redirect("/login");
+    else {
+        const success = await transact(req.session.ssn, req.body.anum, req.body.amount, req.body.type);
+        const [acctTable, transacForm] = await getAccounts(req.session.ssn);
+        if (success)
+            res.render("accounts", {acctTable: acctTable, transacForm: transacForm, success: true});
+        else
+            res.render("accounts", {acctTable: acctTable, transacForm: transacForm, failed: true});
+    }
+});
+
 app.get("/customer/loans", async function (req, res) {
     if (!req.session.ssn || !(await doesSsnExist(req.session.ssn)))
         res.redirect("/login");
