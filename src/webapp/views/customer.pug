@@ -4,9 +4,14 @@ html
         h1
             a(href="/") StrategicBanking
         div(class="sidebar")
-            a(href="/customer") Home
-            a(href="/customer/accounts") Accounts
-            a(href="/customer/loans") Loans
-            a(href="/logout") Log out
+            ul
+                li
+                    a(href="/customer") Home
+                li
+                    a(href="/customer/accounts") Accounts
+                li
+                    a(href="/customer/loans") Loans
+                li
+                    a(href="/logout") Log out
         p Welcome, customer!
         | !{biodata}

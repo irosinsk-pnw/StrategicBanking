@@ -99,7 +99,41 @@ async function getLoans(ssn) {
     }
 }
 
+async function makePayment(ssn, lnum, amount) {
+    // Ensure loan num is 10 digits and amount matches money format
+    if (! /^[0-9]{10}$/.test(lnum) || ! /^[0-9]+(\.[0-9]{2})?$/.test(amount))
+        return false;
+
+    let conn;
+    try {
+        conn = await customerPool.getConnection();
+        const row = await conn.query(`select Balance, Payment_due from (LOAN natural join CUST_LOAN) where Ssn = ${ssn} and Loan_num = ${lnum}`);
+        if (row.length != 1)
+            return false;
+
+        const balance = Number(row[0].Balance);
+        const paymentDue = Number(row[0].Payment_due);
+        const payment = Number(amount);
+
+        if (payment > balance)
+            return false;
+
+        const result = await conn.query(`update LOAN set Balance=${balance-payment}, Payment_due=${Math.max(0, paymentDue-payment)} where Loan_num = ${lnum}`);
+        if (result.affectedRows == 0)
+            return false;
+        if (result.affectedRows != 1 || result.warningStatus != 0)
+            console.log(`SSN: ${ssn} | Loan number: ${lnum} | Amount: ${amount} | Result: ${JSON.stringify(result)}`);
+        return true;
+    } catch (e) {
+        throw e;
+    } finally {
+        if (conn) conn.end();
+    }
+}
+
+
 module.exports.doesSsnExist = doesSsnExist;
 module.exports.getBioData = getBioData;
 module.exports.getAccounts = getAccounts;
 module.exports.getLoans = getLoans;
+module.exports.makePayment = makePayment;

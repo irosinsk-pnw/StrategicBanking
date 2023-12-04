@@ -1,6 +1,6 @@
 "use strict";
 
-const {doesSsnExist, getBioData, getAccounts, getLoans} = require("./database-driver.js");
+const {doesSsnExist, getBioData, getAccounts, getLoans, makePayment} = require("./database-driver.js");
 
 const express = require("express");
 const path = require("path");
@@ -72,6 +72,21 @@ app.get("/customer/loans", async function (req, res) {
         res.render("loans", {loanTable: loanTable, paymentForm: paymentForm});
     }
 });
+
+// Make loan payment
+app.post("/customer/loans", async function (req, res) {
+    if (!req.session.ssn || !(await doesSsnExist(req.session.ssn)))
+        res.redirect("/login");
+    else {
+        const success = await makePayment(req.session.ssn, req.body.lnum, req.body.amount);
+        const [loanTable, paymentForm] = await getLoans(req.session.ssn);
+        if (success)
+            res.render("loans", {loanTable: loanTable, paymentForm: paymentForm, success: true});
+        else
+            res.render("loans", {loanTable: loanTable, paymentForm: paymentForm, failed: true});
+    }
+});
+
 
 app.get("/manager", function (req, res) {
     res.render("manager");
