@@ -54,7 +54,7 @@ async function getAccounts(ssn) {
         conn = await customerPool.getConnection();
         const rows = await conn.query(`select Acct_num,Acct_type,Balance,Amount*100 as Percent from (DEPOSIT natural join CUST_ACCT join RATE on Rate = Rate_type) where Ssn = ${ssn}`);
         if (rows.length == 0)
-            return "<p>No deposit accounts found.";
+            return ["<p>No deposit accounts found.", "<p>"];
 
         let table = "<table><tr><th>Account number</th><th>Account type</th><th>Balance</th><th>Interest rate</th></tr>";
         for (let i in rows) {
@@ -89,7 +89,7 @@ async function getLoans(ssn) {
         conn = await customerPool.getConnection();
         const rows = await conn.query(`select Loan_num, Loan_type, Balance, Payment_due, Months_remaining, Amount*100 as Percent from (LOAN natural join CUST_LOAN join RATE on Rate = RATE.Rate_type) where Ssn = ${ssn}`);
         if (rows.length == 0)
-            return ["<p>No loans found.", ""];
+            return ["<p>No loans found.", "<p>"];
 
         let table = "<table><tr><th>Account number</th><th>Loan type</th><th>Balance</th><th>Next payment due</th><th>Months remaining</th><th>Interest rate</th></tr>";
         for (let i in rows) {
@@ -207,8 +207,6 @@ async function getCustomers() {
     try {
         conn = await managerPool.getConnection();
         const rows = await conn.query("select * from CUSTOMER");
-        if (rows.length == 0)
-            return "<p>No customers found.";
 
         let table = "<table><tr><th>SSN</th><th>Name</th><th>Phone number</th><th>Address</th></tr>";
         for (let i in rows) {
@@ -228,6 +226,9 @@ async function getCustomers() {
                     <input type="submit" value="Submit">
                     </form>`;
 
+
+        if (rows.length == 0)
+            return ["<p>No customers found.", form];
         return [table, form];
     } catch (e) {
         throw e;
@@ -270,8 +271,6 @@ async function getAllAccounts() {
     try {
         conn = await managerPool.getConnection();
         const rows = await conn.query("select * from (DEPOSIT natural join CUST_ACCT)");
-        if (rows.length == 0)
-            return "<p>No loans found.";
 
         let table = "<table><tr><th>SSN</th><th>Account number</th><th>Balance</th><th>Account type</th><th>Rate class</th></tr>";
         for (let i in rows) {
@@ -293,6 +292,9 @@ async function getAllAccounts() {
                     <input type="submit" value="Submit">\
                     </form>`;
 
+
+        if (rows.length == 0)
+            return ["<p>No loans found.", form];
         return [table, form];
     } catch (e) {
         throw e;
@@ -344,8 +346,6 @@ async function getAllLoans() {
     try {
         conn = await managerPool.getConnection();
         const rows = await conn.query("select * from (LOAN natural join CUST_LOAN)");
-        if (rows.length == 0)
-            return "<p>No loans found.";
 
         let table = "<table><tr><th>SSN</th><th>Loan number</th><th>Balance</th><th>Next payment due</th><th>Months remaining</th><th>Rate class</th><th>Loan type</th></tr>";
         for (let i in rows) {
@@ -375,6 +375,9 @@ async function getAllLoans() {
                     <input type="submit" value="Submit">\
                     </form>`;
 
+
+        if (rows.length == 0)
+            return ["<p>No loans found.", form];
         return [table, form];
     } catch (e) {
         throw e;

@@ -19,7 +19,7 @@ app.set("views", "./views");
 app.set("view engine", "pug");
 
 app.get("/", function(req, res) {
-    res.sendFile(path.join(__dirname, "html", "index.html"));
+    res.render("index");
 });
 
 app.get("/stylesheet.css", function(req, res) {
