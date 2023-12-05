@@ -18,6 +18,10 @@ html
                     a(href="/manager/fedfunds") Federal Funds
                 li
                     a(href="/manager/rates") Interest rates
-        p Welcome!
-        p Bank status:
-        | !{bankdata}
+        p Federal Funds lent out:
+        | !{lendtable}
+        p Federal Funds borrowed:
+        | !{borrowtable}
+        p Lend or borrow Federal Funds:
+        | !{form}
+        | !{results}

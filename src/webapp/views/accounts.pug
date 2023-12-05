@@ -1,5 +1,6 @@
 html
     head
+        link(rel="stylesheet" href="/stylesheet.css")
     body
         h1
             a(href="/") StrategicBanking
@@ -14,9 +15,9 @@ html
                 li
                     a(href="/logout") Log out
         p Your accounts:
-        | !{acctTable}
+        | !{table}
         |
-        | !{transacForm}
+        | !{form}
         if (failed)
             p Transaction failed. No account changes were made.
         if (success)

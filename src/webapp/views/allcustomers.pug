@@ -1,5 +1,6 @@
 html
     head
+        link(rel="stylesheet" href="/stylesheet.css")
     body
         h1
             a(href="/") StrategicBanking
@@ -18,7 +19,7 @@ html
                 li
                     a(href="/manager/rates") Interest rates
         p Customers:
-        | !{custTable}
-        |
-        | !{custForm}
+        | !{table}
+        p Add a new customer:
+        | !{form}
         | !{results}
