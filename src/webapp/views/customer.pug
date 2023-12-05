@@ -1,0 +1,18 @@
+html
+    head
+        link(rel="stylesheet" href="/stylesheet.css")
+    body
+        h1
+            a(href="/") StrategicBanking
+        div(class="sidebar")
+            ul
+                li
+                    a(href="/customer") Home
+                li
+                    a(href="/customer/accounts") Accounts
+                li
+                    a(href="/customer/loans") Loans
+                li
+                    a(href="/logout") Log out
+        p Welcome, customer!
+        | !{biodata}

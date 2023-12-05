@@ -1,0 +1,23 @@
+html
+    head
+        link(rel="stylesheet" href="/stylesheet.css")
+    body
+        h1
+            a(href="/") StrategicBanking
+        div(class="sidebar")
+            ul
+                li
+                    a(href="/manager") Home
+                li
+                    a(href="/manager/customers") Customers
+                li
+                    a(href="/manager/accounts") Accounts
+                li
+                    a(href="/manager/loans") Loans
+                li
+                    a(href="/manager/fedfunds") Federal Funds
+                li
+                    a(href="/manager/rates") Interest rates
+        p Welcome!
+        p Bank status:
+        | !{bankdata}
