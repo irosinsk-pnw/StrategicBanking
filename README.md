@@ -1,9 +1,9 @@
 # StrategicBanking
 This is our Database Systems class final project, a banking system
 
-The project documentation, including proposal and ER diagram, can be found in `StrategicBanking/doc`
+The project documentation, including E/R diagram, schema, and query examples, can be found in `StrategicBanking/doc`
 
-The source code can be found in `StrategicBanking/src`
+The source code, including frontend and initial database state, can be found in `StrategicBanking/src`
 
 ## Running
 Our web application requires Node.js, MySQL or MariaDB, and the dependencies listed in `package.json`.  
